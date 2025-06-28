@@ -1,5 +1,4 @@
-pub mod exporter;
-pub mod collector;
+pub mod config;
+pub mod logger;
 
-pub use exporter::PrometheusExporter;
-pub use collector::MetricsCollector;
+pub use config::Config;

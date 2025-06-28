@@ -21,7 +21,7 @@ struct Cli {
     #[arg(short, long)]
     verbose: bool,
 
-    /// Configuration file path
+    /// Configuration file path 
     #[arg(short, long, default_value = "config/default.toml")]
     config: String,
 }

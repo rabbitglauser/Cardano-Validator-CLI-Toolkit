@@ -1,7 +1,8 @@
+
 use anyhow::Result;
 use crate::utils::config::Config;
 
-pub async fn execute(prometheus: bool, port: u16, config: &Config) -> Result<()> {
+pub async fn execute(prometheus: bool, port: u16, _config: &Config) -> Result<()> {
     println!("📊 Monitoring command executed!");
     println!("  Prometheus enabled: {}", prometheus);
     println!("  Port: {}", port);

@@ -32,3 +32,16 @@ Automates staking operations for internal teams; could be open-sourced or kept p
 
 Growth Mindset Showcase:
 Demonstrates initiative to improve infrastructure and contribute to staking operations.
+
+
+# Build the project
+cargo build
+
+# Test the help command
+cargo run -- --help
+
+# Test individual commands
+cargo run -- status --help
+cargo run -- rewards --help
+cargo run -- monitor --help
+cargo run -- health --help
