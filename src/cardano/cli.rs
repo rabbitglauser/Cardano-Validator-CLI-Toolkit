@@ -1,4 +1,3 @@
-
 use anyhow::{Result, Context};
 use serde_json::Value;
 use std::process::Command;
@@ -86,7 +85,6 @@ impl CardanoCli {
             .context("Failed to parse JSON response from cardano-cli")
     }
 
-    // New method: Get pool information (retirement status, etc.)
     pub async fn query_pool_info(&self, pool_id: &str) -> Result<Value> {
         // First try to get pool params to see if pool exists and is active
         match self.query_pool_params(pool_id).await {
@@ -96,7 +94,7 @@ impl CardanoCli {
                     "active": true,
                     "params": params
                 }))
-            },
+            }
             Err(_) => {
                 // Pool might be retired or doesn't exist
                 Ok(serde_json::json!({
@@ -107,9 +105,8 @@ impl CardanoCli {
         }
     }
 
-    // New method: Get blocks produced by pool in an epoch
-    pub async fn query_pool_blocks(&self, pool_id: &str, epoch: u64) -> Result<Value> {
-        // Note: This is a simplified approach. In reality, you'd need to:
+    pub async fn query_pool_blocks(&self, _pool_id: &str, _epoch: u64) -> Result<Value> {
+        //TODO This is a simplified approach. In reality, you'd need to:
         // 1. Query the ledger state for the epoch
         // 2. Parse block producer information
         // For now, we'll return a placeholder that indicates "not implemented"
@@ -120,7 +117,7 @@ impl CardanoCli {
                 // TODO: Parse actual block information from ledger state
                 // This would require complex parsing of the ledger state JSON
                 Ok(serde_json::json!([]))  // Return empty array for now
-            },
+            }
             Err(_) => {
                 // Return empty array if we can't query ledger state
                 Ok(serde_json::json!([]))
@@ -152,10 +149,54 @@ impl CardanoCli {
 
     // Helper method to check if cardano-cli is available
     pub async fn is_available(&self) -> bool {
-        Command::new(&self.cli_path)
-            .args(["version"])
+        let output = Command::new(&self.cli_path)
+            .args(&["version"])
+            .output();
+
+        match output {
+            Ok(result) => result.status.success(),
+            Err(_) => false,
+        }
+    }
+
+    pub async fn query_stake_pools(&self) -> Result<Vec<String>> {
+        let output = Command::new(&self.cli_path)
+            .args([
+                "query", "stake-pools",
+                "--socket-path", &self.socket_path,
+                &format!("--{}", self.network),
+            ])
             .output()
-            .map(|output| output.status.success())
-            .unwrap_or(false)
+            .context("Failed to execute cardano-cli query stake-pools")?;
+
+        if !output.status.success() {
+            let error = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("cardano-cli query stake-pools failed: {}", error);
+        }
+
+        let result = String::from_utf8(output.stdout)?;
+        let pools: Vec<String> = serde_json::from_str(&result)?;
+        Ok(pools)
+    }
+
+    pub async fn query_leadership_schedule(&self, pool_id: &str, vrf_key_file: &str) -> Result<Value> {
+        let output = Command::new(&self.cli_path)
+            .args([
+                "query", "leadership-schedule",
+                "--stake-pool-id", pool_id,
+                "--vrf-signing-key-file", vrf_key_file,
+                "--socket-path", &self.socket_path,
+                &format!("--{}", self.network),
+            ])
+            .output()
+            .context("Failed to execute cardano-cli query leadership-schedule")?;
+
+        if !output.status.success() {
+            let error = String::from_utf8_lossy(&output.stderr);
+            anyhow::bail!("cardano-cli query leadership-schedule failed: {}", error);
+        }
+
+        let result = String::from_utf8(output.stdout)?;
+        serde_json::from_str(&result).context("Failed to parse leadership schedule")
     }
 }
