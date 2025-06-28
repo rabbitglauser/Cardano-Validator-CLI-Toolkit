@@ -1,7 +1,7 @@
-
-use anyhow::{Result, Context};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
@@ -16,6 +16,7 @@ pub struct CardanoConfig {
     pub cli_path: String,
     pub node_socket_path: String,
     pub network: String,
+    pub testnet_magic: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -24,8 +25,8 @@ pub struct PoolConfig {
     pub name: String,
     pub ticker: String,
     pub vrf_key_file: String,
-    pub cold_key_file: String,
-    pub cert_file: String,
+    pub pledge_address: String,
+    pub reward_address: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -39,65 +40,84 @@ pub struct MonitoringConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AlertsConfig {
-    pub saturation_threshold: f64,
-    pub sync_lag_threshold_seconds: u64,
-    pub missed_blocks_threshold: u64,
-    pub webhook_url: String,
     pub email_enabled: bool,
+    pub webhook_url: String,
+    pub saturation_threshold: f64,
+    pub missed_blocks_threshold: u64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RewardsConfig {
-    pub default_format: String,
+    pub calculation_method: String,
+    pub output_format: String,
     pub output_directory: String,
     pub include_fees: bool,
+    pub delegation_rewards_percentage: f64,
 }
 
-pub fn load_config(path: &str) -> Result<Config> {
-    let content = fs::read_to_string(path)
-        .context(format!("Failed to read config file: {}", path))?;
+impl Config {
+    pub fn load_or_create_default() -> Result<Self> {
+        let config_path = "config.toml";
 
-    let config: Config = toml::from_str(&content)
-        .context("Failed to parse TOML config")?;
-
-    Ok(config)
+        if Path::new(config_path).exists() {
+            let content = fs::read_to_string(config_path)?;
+            let config: Config = toml::from_str(&content)?;
+            Ok(config)
+        } else {
+            let default_config = Self::default();
+            let toml_content = toml::to_string_pretty(&default_config)?;
+            fs::write(config_path, toml_content)?;
+            println!("Created default config file: {}", config_path);
+            Ok(default_config)
+        }
+    }
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Self {
+        Config {
             cardano: CardanoConfig {
                 cli_path: "cardano-cli".to_string(),
-                node_socket_path: "/opt/cardano/cnode/sockets/node.socket".to_string(),
+                node_socket_path: "/opt/cardano/cnode/sockets/node0.socket".to_string(),
                 network: "mainnet".to_string(),
+                testnet_magic: None,
             },
             pools: vec![
                 PoolConfig {
-                    pool_id: "pool1abcdef123456789abcdef123456789abcdef123456789abcdef123456789".to_string(),
+                    pool_id: "pool1abc123...".to_string(),
                     name: "My Stake Pool".to_string(),
-                    ticker: "MYPOOL".to_string(),
-                    vrf_key_file: "/opt/cardano/cnode/priv/pool/vrf.skey".to_string(),
-                    cold_key_file: "/opt/cardano/cnode/priv/pool/cold.skey".to_string(),
-                    cert_file: "/opt/cardano/cnode/priv/pool/pool.cert".to_string(),
-                }
+                    ticker: "DEMO".to_string(),
+                    vrf_key_file: "vrf.vkey".to_string(),
+                    pledge_address: "addr1...".to_string(),
+                    reward_address: "stake1...".to_string(),
+                },
+                PoolConfig {
+                    pool_id: "pool1def456...".to_string(),
+                    name: "Backup Pool".to_string(),
+                    ticker: "BACKUP".to_string(),
+                    vrf_key_file: "backup_vrf.vkey".to_string(),
+                    pledge_address: "addr1...".to_string(),
+                    reward_address: "stake1...".to_string(),
+                },
             ],
             monitoring: MonitoringConfig {
                 enabled: true,
                 prometheus_port: 9090,
                 metrics_interval: 60,
-                check_interval_seconds: 300,
+                check_interval_seconds: 30,
                 alerts: AlertsConfig {
-                    saturation_threshold: 0.95,
-                    sync_lag_threshold_seconds: 120,
-                    missed_blocks_threshold: 3,
-                    webhook_url: String::new(),
                     email_enabled: false,
+                    webhook_url: "".to_string(),
+                    saturation_threshold: 0.8,
+                    missed_blocks_threshold: 2,
                 },
             },
             rewards: RewardsConfig {
-                default_format: "table".to_string(),
+                calculation_method: "standard".to_string(),
+                output_format: "json".to_string(),
                 output_directory: "./reports".to_string(),
                 include_fees: true,
+                delegation_rewards_percentage: 95.0,
             },
         }
     }
