@@ -63,6 +63,9 @@ The **Cardano Validator CLI Toolkit** streamlines DevOps for SPOs by offering re
 - Rust ≥ 1.70 with Cargo
 - (Optional) Cardano node for live monitoring
 
+## Screenshot
+<img width="704" alt="screenshot" src="https://github.com/user-attachments/assets/32116ea1-84a7-4420-9b7d-c70ac222aea6" />
+
 ### Build from Source
 ```bash
 # Clone and enter project
