@@ -1,4 +1,7 @@
-# 🛠️ Cardano Validator CLI Toolkit
+<h1 align="center">
+  <img src="https://github.com/user-attachments/assets/73f9cb9a-11ce-488b-9442-d6fa0a362554" width="200px" alt="logo">
+  <p>🛠️ Cardano Validator CLI Toolkit</p>
+</h1>
 
 A professional-grade command-line toolkit for Cardano Stake Pool Operators (SPOs), enabling powerful automation, health monitoring, analytics, rewards calculations, and node operations.
 
